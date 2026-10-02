@@ -1,0 +1,7 @@
+*.exe
+*.syso
+dist/
+data/
+*.zip
+__pycache__/
+/countryipfilter

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Country IP Filter guide</title>
+<style>
+:root{--bg:#f5f6f8;--ink:#1d2330;--line:#e2e6ec}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "Segoe UI",Tahoma,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:24px 16px 60px}
+h1{font-size:23px;margin:6px 0}
+h2{font-size:18px;margin:26px 0 8px;padding-top:10px;border-top:2px solid var(--line)}
+ol,ul{padding-left:24px;margin:6px 0}
+li{margin:6px 0}
+.box{border-radius:10px;padding:10px 14px;margin:8px 0}
+.g{background:#e1f5e8;color:#146232}.o{background:#fff2da;color:#804600}.r{background:#fde7e7;color:#a01c1c}.k{background:#f0f2f5;color:#343a44}
+.en{direction:ltr;unicode-bidi:embed}
+</style>
+</head>
+<body><main>
+<h1>Country IP Filter (version 4.0)</h1>
+<p>This program lets only IPs of the countries you choose connect to chosen ports or programs of this server (for example Revit Server, Remote Desktop or a database). No installation is needed.</p>
+
+<h2>Use</h2>
+<ol>
+<li>Unpack the whole program folder from the zip file and put it in a fixed place (best: <span class="en">C:\Program Files\CountryIPFilter</span>). The program sets the permissions of this folder so that only <span class="en">Administrators</span> can change it.</li>
+<li>Double-click <span class="en">CountryIPFilter.exe</span>.</li>
+<li>Press <span class="en">Yes</span> in the Windows prompt.</li>
+<li>Under "Countries", choose a country in the list.</li>
+<li>Press "Add country". Repeat for every country whose users must connect.</li>
+<li>Under "Ports and programs", choose <span class="en">TCP</span> or <span class="en">UDP</span>, then type the port number or choose a service in the list.</li>
+<li>Press "Add port".</li>
+<li>Press the big "Turn protection on" button.</li>
+<li>Read the message and press <span class="en">Yes</span>.</li>
+<li>If the banner at the top does not turn green, press the big "Fix problems" button.</li>
+</ol>
+<p>The country IP lists are updated automatically every 4 weeks. The program does not need to stay open.</p>
+
+<h2>Colour of the banner</h2>
+<div class="box g">Green: protection is on and works.</div>
+<div class="box o">Orange: there is something worth fixing (or protection is off and a port is open to everyone).</div>
+<div class="box r">Red: protection does not fully work; press the big button or the button next to each problem.</div>
+<div class="box k">Grey: protection is off.</div>
+
+<h2>Countries</h2>
+<ul>
+<li>You can choose one country or several. Users from all of them can connect.</li>
+<li>While protection is on, adding or removing a country downloads the lists again at once.</li>
+<li>The lists come from RIPEstat and cover every country in the world.</li>
+</ul>
+
+<h2>Ports and programs</h2>
+<ul>
+<li><b>Port</b>: choose <span class="en">TCP</span> or <span class="en">UDP</span>, type the number (or choose a service in the list) and press "Add port".</li>
+<li><b>Program</b>: press "Add program (exe)…" and choose the program file. The program is then reachable from the chosen countries on every port it uses. Install server programs in <span class="en">C:\Program Files</span>, so other users cannot replace the file.</li>
+<li><b>Remove</b>: click the row in the table, then press "Remove selected item".</li>
+</ul>
+
+<h2>"Status" column</h2>
+<ul>
+<li><b>Chosen countries only</b>: correct.</li>
+<li><b>Open to everyone</b>: other countries can still connect.</li>
+<li><b>Closed to all (even chosen)</b>: the users cannot connect either.</li>
+<li><b>Closed</b> or <b>Open to a few specific IPs</b>: protection is off and the port is as it was.</li>
+</ul>
+
+<h2>Language and version</h2>
+<ul>
+<li>The program has English and Persian. Press the button at the bottom of the window ("فارسی" or "English"). The program closes for a moment and opens again.</li>
+<li>The version is shown in the window title.</li>
+</ul>
+
+<h2>Turning off</h2>
+<p>"Turn protection off" removes the "these countries only" Rules and turns the old Rules back on. If a port will then be closed for everyone, you are told before.</p>
+
+<h2>Notes</h2>
+<ul>
+<li>Users whose VPN gives them an IP of another country cannot connect; they must switch the VPN off.</li>
+<li>Only IPv4 is let in.</li>
+<li>The program never switches off, without asking, Rules that might also cut Remote Desktop, SSH or other services.</li>
+<li>The program's files are only in the <span class="en">data</span> folder next to it. The other settings are stored inside the <span class="en">Windows Firewall</span> Rules themselves, so moving the program loses nothing.</li>
+<li>The monthly update is a Windows <span class="en">Scheduled Task</span> that runs only <span class="en">PowerShell</span> and does not need the program file. A new list that is much smaller or much bigger than the last one is not used.</li>
+<li>Upgrading from "Iran IP Filter" 3.x: the old Rules are moved over automatically; nothing changes for the users. Then delete <span class="en">IranIPFilter.exe</span>.</li>
+<li>If there is a problem: press "Technical details", then "Copy text", and send the text to support.</li>
+</ul>
+</main></body></html>

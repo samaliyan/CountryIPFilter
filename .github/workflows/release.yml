@@ -1,0 +1,42 @@
+# Every push: tests. A push whose commit message contains [release]:
+# builds CountryIPFilter.exe (version from the VERSION file) and publishes
+# it as a GitHub Release with the two guides.
+name: build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - name: Version
+        id: v
+        run: echo "version=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+      - name: Test and build
+        run: |
+          chmod +x build.sh
+          ./build.sh "${{ steps.v.outputs.version }}"
+      - name: Package
+        run: |
+          mkdir -p pkg/CountryIPFilter
+          cp dist/* pkg/CountryIPFilter/
+          cd pkg && zip -r "../CountryIPFilter-${{ steps.v.outputs.version }}.zip" CountryIPFilter
+      - name: Release
+        if: contains(github.event.head_commit.message, '[release]')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.v.outputs.version }}
+          name: Country IP Filter ${{ steps.v.outputs.version }}
+          body: |
+            Download CountryIPFilter-${{ steps.v.outputs.version }}.zip, unpack the folder to C:\Program Files\CountryIPFilter and run CountryIPFilter.exe. See Guide.html (English) or راهنما.html (Persian).
+          files: CountryIPFilter-${{ steps.v.outputs.version }}.zip
