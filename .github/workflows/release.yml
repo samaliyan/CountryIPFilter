@@ -38,5 +38,5 @@ jobs:
           tag_name: v${{ steps.v.outputs.version }}
           name: Country IP Filter ${{ steps.v.outputs.version }}
           body: |
-            Download CountryIPFilter-${{ steps.v.outputs.version }}.zip, unpack the folder to C:\Program Files\CountryIPFilter and run CountryIPFilter.exe. See Guide.html (English) or راهنما.html (Persian).
+            Download CountryIPFilter-${{ steps.v.outputs.version }}.zip, unpack the folder to C:\Program Files\CountryIPFilter and run CountryIPFilter.exe. See Guide.html (English) or Guide-fa.html (Persian).
           files: CountryIPFilter-${{ steps.v.outputs.version }}.zip

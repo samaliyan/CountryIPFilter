@@ -12,5 +12,5 @@ python3 tools/mksyso.py --arch amd64 --ico assets/app.ico --manifest assets/app.
 mkdir -p dist
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath \
   -ldflags "-s -w -H windowsgui -X main.Version=$V" -o dist/CountryIPFilter.exe .
-cp docs/Guide.html "docs/راهنما.html" dist/
+cp docs/Guide.html docs/Guide-fa.html dist/
 echo "dist/CountryIPFilter.exe ($V)"
