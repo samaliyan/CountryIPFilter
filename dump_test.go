@@ -58,7 +58,7 @@ func TestDumpViews(t *testing.T) {
 			"countries": T("کشورها (فقط این کشورها می‌توانند وصل شوند)"), "addCountry": T("افزودن کشور"), "remCountry": T("حذف کشور انتخاب‌شده"),
 			"ports": T("پورت‌ها و برنامه‌ها"), "item": T("مورد"), "service": T("سرویس"), "state": T("وضعیت"),
 			"addLabel": T("افزودن پورت:"), "cue": T("مثلاً 808"), "add": T("افزودن پورت"), "addApp": T("افزودن برنامه (exe)…"), "remove": T("حذف مورد انتخاب‌شده"),
-			"problems": T("مشکل‌ها"), "problemsN": T("مشکل‌ها (%d)", len(ui.view.Problems)), "noProb": T("✔  مشکلی نیست."), "lang": langName,
+			"problems": T("مشکل‌ها"), "problemsN": T("مشکل‌ها (%d)", len(ui.view.Problems)), "noProb": T("✔  مشکلی نیست."), "lang": langName, "copyProb": T("کپی متن مشکل‌ها"),
 			"title": appTitle(),
 		}
 		prefix := ""

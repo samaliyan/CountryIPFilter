@@ -25,10 +25,13 @@ func main() {
 		p.Call(0x00000800)
 	}
 	runtime.LockOSThread()
-	restart := false
+	restart, remove := false, false
 	for _, a := range os.Args[1:] {
 		if strings.EqualFold(a, "--restart") {
-			restart = true // opened again after a language change
+			restart = true // opened again after a language change or an install
+		}
+		if strings.EqualFold(a, "--uninstall") {
+			remove = true // from Settings, Apps
 		}
 	}
 	lang = systemLang()
@@ -74,6 +77,16 @@ func main() {
 			messageBox(0, T("این برنامه همین حالا باز است (شاید در Session یک کاربر دیگر روی همین سرور). اول آن را ببندید و بعد دوباره باز کنید."), appTitle(), MB_OK|MB_ICONINFO)
 		}
 		return
+	}
+	if remove {
+		uninstall(self)
+		return
+	}
+	// started from anywhere but Program Files (Downloads ...): offer to install
+	if d := installDir(); d != "" && !restart && !strings.EqualFold(filepath.Clean(exeDir), filepath.Clean(d)) && !sameDir(exeDir, d) {
+		if offerInstall(self, exeDir, d) {
+			return
+		}
 	}
 
 	os.MkdirAll(dataDir, 0o755)

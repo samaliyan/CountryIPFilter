@@ -322,3 +322,22 @@ func TestTaskFailureShown(t *testing.T) {
 		t.Fatal(taskDir)
 	}
 }
+
+// Uninstalling deletes only named files and empty folders, never a whole tree.
+func TestUninstallDeletesOnlyNamedFiles(t *testing.T) {
+	s := UninstallScript(`C:\Program Files\CountryIPFilter`, []string{`C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Country IP Filter.lnk`})
+	for _, bad := range []string{"-Recurse", "*", "$HOME"} {
+		if strings.Contains(s, bad) {
+			t.Fatalf("uninstall script contains %q", bad)
+		}
+	}
+	if strings.Count(s, "DelFile '") < 8 || !strings.Contains(s, "ReparsePoint") {
+		t.Fatal(s)
+	}
+	in := InstallScript(`C:\Program Files\CountryIPFilter\CountryIPFilter.exe`, []string{`C:\x\Country IP Filter.lnk`}, "4.0.2")
+	for _, want := range []string{"UninstallString", `--uninstall`, "'DisplayVersion' -Value '4.0.2'", "CreateShortcut('C:\\x\\Country IP Filter.lnk')"} {
+		if !strings.Contains(in, want) {
+			t.Fatalf("install script lacks %s", want)
+		}
+	}
+}

@@ -34,6 +34,7 @@ type Layout struct {
 	AddApp           Box
 	RemoveButton     Box
 	ProbHead         Box
+	CopyProb         Box // copies the text of every problem
 	NoProb           Box
 	Rows             []ProblemRow
 	Hidden           int // problems that did not fit
@@ -175,6 +176,10 @@ func computeLayout(v View, haveView, details, busy bool, measure func(text strin
 		return L
 	}
 	L.ProbHead = Box{16, y, 688, 22}
+	if len(v.Problems) > 0 {
+		L.ProbHead.W = 540
+		L.CopyProb = Box{layoutW - 16 - 150, y - 4, 150, 26}
+	}
 	y += 28
 	if len(v.Problems) == 0 {
 		L.NoProb = Box{16, y, 688, 22}

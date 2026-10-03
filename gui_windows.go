@@ -41,6 +41,7 @@ const (
 	idRemCountry = 124
 	idProtoCombo = 125
 	idAddApp     = 126
+	idCopyProb   = 127
 	idSlotText   = 200 // + i
 	idSlotButton = 300 // + i
 
@@ -265,6 +266,7 @@ func (g *gui) create() error {
 	g.add(idRemovePort, "BUTTON", T("حذف مورد انتخاب‌شده"), WS_TABSTOP|BS_PUSHBUTTON, 0, g.font)
 
 	g.add(idProbHead, "STATIC", T("مشکل‌ها"), SS_NOPREFIX, 0, g.head)
+	g.add(idCopyProb, "BUTTON", T("کپی متن مشکل‌ها"), WS_TABSTOP|BS_PUSHBUTTON, 0, g.font)
 	g.add(idNoProb, "STATIC", T("✔  مشکلی نیست."), SS_NOPREFIX, 0, g.font)
 	for i := 0; i < maxRows; i++ {
 		g.add(idSlotText+i, "STATIC", "", SS_NOPREFIX, 0, g.font)
@@ -385,6 +387,7 @@ func (g *gui) render() {
 	g.place(idAddApp, L.AddApp)
 	g.place(idRemovePort, L.RemoveButton)
 	g.place(idProbHead, L.ProbHead)
+	g.place(idCopyProb, L.CopyProb)
 	g.place(idNoProb, L.NoProb)
 	g.place(idInfo, L.Info)
 	g.place(idLang, L.Lang)
@@ -502,7 +505,7 @@ func (g *gui) readSelection() {
 
 func (g *gui) enableAll() {
 	on := !g.busy && g.haveView
-	for _, id := range []int{idOff, idRefresh, idDetails, idCopy, idPortList, idCountList, idLang} {
+	for _, id := range []int{idOff, idRefresh, idDetails, idCopy, idPortList, idCountList, idLang, idCopyProb} {
 		enable(g.ctl[id], on)
 	}
 	// ports and countries can be changed only when the firewall could be read
@@ -890,6 +893,15 @@ func (g *gui) command(id, code int) {
 		}
 	case idLang:
 		g.switchLanguage()
+	case idCopyProb:
+		var parts []string
+		for i, p := range g.view.Problems {
+			parts = append(parts, fmt.Sprintf("%d. %s", i+1, p.Text))
+		}
+		text := appTitle() + "\r\n" + g.view.Title + "\r\n" + g.view.Desc + "\r\n\r\n" + strings.Join(parts, "\r\n\r\n")
+		if g.copyText(text) {
+			messageBox(g.hwnd, T("متن مشکل‌ها کپی شد. حالا می‌توانید آن را در پیام یا ایمیل Paste کنید."), appTitle(), MB_OK|MB_ICONINFO)
+		}
 	case idOff:
 		g.work(g.app.TurnOff)
 	case idRefresh:

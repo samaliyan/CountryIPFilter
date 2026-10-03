@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: ./build.sh 4.0.1
+# usage: ./build.sh 4.0.2
 # Builds dist/CountryIPFilter.exe with the two guides next to it.
 set -e
 V=${1:-$(cat VERSION 2>/dev/null || echo dev)}

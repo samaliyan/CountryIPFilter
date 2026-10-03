@@ -145,6 +145,9 @@ def render(v, L, path, TX, states, countries, combo):
     if vis(ph):
         t = TX["problemsN"] if probs else TX["problems"]
         text(d, ph["X"], ph["Y"], ph["W"], ph["H"], t, head)
+    cp = L.get("CopyProb")
+    if cp and vis(cp):
+        button(d, cp["X"], cp["Y"], cp["W"], cp["H"], TX["copyProb"])
     nb = L["NoProb"]
     if vis(nb):
         text(d, nb["X"], nb["Y"], nb["W"], nb["H"], TX["noProb"], font, STATE[1])

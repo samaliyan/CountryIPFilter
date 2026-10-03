@@ -50,6 +50,10 @@ func TestPSParse(t *testing.T) {
 		"untask":    UnscheduleScript(),
 		"firewall":  EnableFirewallScript(),
 		"download":  DownloadScript("IR"),
+		"install":   InstallScript(`C:\Program Files\CountryIPFilter\CountryIPFilter.exe`, []string{`C:\it's\a.lnk`}, "4.0.2"),
+		"uninstall": UninstallScript(`C:\Program Files\CountryIPFilter`, []string{`C:\a.lnk`}),
+		"protected": ProtectionOnScript(),
+		"pending":   PendingScript(`C:\Program Files\CountryIPFilter`),
 	}
 	var b strings.Builder
 	for name, s := range scripts {
