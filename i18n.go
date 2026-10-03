@@ -445,4 +445,5 @@ var english = map[string]string{
 	"نسخه‌ی قدیمی این پورت‌ها را هم برای ایران باز کرده بود: %s":                                      "The old version also opened these ports for Iran: %s",
 	"این پورت‌ها به لیست اضافه شوند؟ اگر No را بزنید، بعد از حذف Rule های نسخه‌ی قدیمی بسته می‌شوند.": "Add these ports to the list? If you press No, they are closed when the Rules of the old version are removed.",
 	"پورت‌های نسخه‌ی قدیمی به لیست اضافه شدند: %s":                                                    "The ports of the old version were added to the list: %s",
+	"به‌روزرسانی خودکار در تاریخ %s اجرا نشد (کد خطای Windows: %s). شاید Group Policy اجرای Script های PowerShell را بسته. تا آن موقع، لیست را با دکمه‌ی «%s» دستی به‌روز کنید.": "The automatic update did not run on %s (Windows error code: %s). Group Policy may block PowerShell scripts. Until that is solved, update the list by hand with \"%s\".",
 }

@@ -99,8 +99,11 @@ type Status struct {
 	Listeners map[int][]Listener // TCP
 	UDP       map[int][]Listener
 	Task      bool
-	TaskArgs  string // "program arguments" of the scheduled task
-	Proxy     string // proxy Windows uses for the list download ("" = none)
+	TaskArgs  string    // "program arguments" of the scheduled task
+	TaskFile  string    // SHA-256 of update.ps1 ("" when it is missing)
+	TaskCode  int64     // result of the task's last run (0 = fine)
+	TaskRun   time.Time // when it last ran
+	Proxy     string    // proxy Windows uses for the list download ("" = none)
 	entries   []Entry
 }
 
@@ -479,10 +482,29 @@ func (s Status) setOf(e Entry) []OurRule {
 	return s.sets()[id]
 }
 
-// TaskCurrent: the scheduled task runs the update script of this version,
-// with the PowerShell of Windows itself.
+// TaskFailed: the task ran (in this century) and Windows reports an error,
+// e.g. Group Policy forbids PowerShell script files. 0x41300-0x41306 are
+// "ready / running / not yet run" and the like, not errors.
+func (s Status) TaskFailed() bool {
+	if !s.Task || s.TaskCode == 0 || s.TaskRun.Year() < 2000 {
+		return false
+	}
+	// the list was updated (by hand) after that run: nothing to say now
+	if s.Tags.LastOK && s.Tags.LastWhen.After(s.TaskRun) {
+		return false
+	}
+	switch s.TaskCode {
+	case 0x41325, 0x8004131F: // queued, already running
+		return false
+	}
+	return s.TaskCode < 0x41300 || s.TaskCode > 0x41306
+}
+
+// TaskCurrent: the scheduled task runs the update script of this version
+// (its file unchanged), with the PowerShell of Windows itself.
 func (s Status) TaskCurrent() bool {
-	return s.Task && strings.HasSuffix(strings.ToLower(s.TaskArgs), strings.ToLower(`\System32\WindowsPowerShell\v1.0\powershell.exe `+TaskArguments()))
+	return s.Task && strings.HasSuffix(strings.ToLower(s.TaskArgs), strings.ToLower(`\System32\WindowsPowerShell\v1.0\powershell.exe `+TaskArguments())) &&
+		strings.EqualFold(s.TaskFile, taskFileHash())
 }
 
 // plainRange: an IPv4 address or network the way this program writes them
@@ -709,6 +731,14 @@ func ParseStatus(out string, entries []Entry) (Status, error) {
 			st.OldTask = strings.TrimSpace(strings.TrimPrefix(line, "OLDTASK|")) == "True"
 		case strings.HasPrefix(line, "PROXY|"):
 			st.Proxy = strings.TrimSpace(strings.TrimPrefix(line, "PROXY|"))
+		case strings.HasPrefix(line, "TASKRESULT|"):
+			f := strings.Split(line, "|")
+			if len(f) >= 3 {
+				st.TaskCode, _ = strconv.ParseInt(strings.TrimSpace(f[1]), 10, 64)
+				st.TaskRun, _ = time.Parse(time.RFC3339, strings.TrimSpace(f[2]))
+			}
+		case strings.HasPrefix(line, "TASKFILE|"):
+			st.TaskFile = strings.TrimSpace(strings.TrimPrefix(line, "TASKFILE|"))
 		case strings.HasPrefix(line, "TASKARGS|"):
 			st.TaskArgs = unb64(strings.TrimPrefix(line, "TASKARGS|"))
 		}

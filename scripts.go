@@ -6,11 +6,11 @@ package main
 // as Base64 of UTF-8 so the console code page cannot damage it.
 
 import (
-	"encoding/base64"
+	"crypto/sha256"
+	"encoding/hex"
 	"sort"
 	"strconv"
 	"strings"
-	"unicode/utf16"
 )
 
 // psQuote: PowerShell also treats the curly quotes as single quotes.
@@ -286,23 +286,30 @@ try {
 `
 }
 
-// TaskArguments: the powershell.exe arguments of the scheduled task. The
-// script travels as Base64 of UTF-8 (half the size of -EncodedCommand), so
-// the task's command line stays short.
-func TaskArguments() string {
-	b := base64.StdEncoding.EncodeToString([]byte(UpdateScript()))
-	return `-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& ([ScriptBlock]::Create([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('` + b + `'))))"`
+// The monthly update runs a plain script file, update.ps1, kept in a folder
+// of its own under Program Files, where only Administrators can create or
+// change anything (the program writes it; see writeTaskFile). Not in
+// ProgramData: ordinary users may create folders there. No encoded command
+// lines: those look like malware to antivirus programs.
+var taskDir = `C:\Program Files\Country IP Filter Update`
+
+func taskFile() string { return taskDir + `\update.ps1` }
+
+// taskScriptBytes: update.ps1 as written (UTF-8 with BOM, so Windows
+// PowerShell 5.1 reads it as UTF-8).
+func taskScriptBytes() []byte {
+	return append([]byte("\uFEFF"), []byte(strings.ReplaceAll(strings.ReplaceAll(UpdateScript(), "\r\n", "\n"), "\n", "\r\n"))...)
 }
 
-// encodePS: Base64 of UTF-16LE, as powershell.exe -EncodedCommand wants.
-func encodePS(s string) string {
-	u := utf16.Encode([]rune(s))
-	b := make([]byte, len(u)*2)
-	for i, v := range u {
-		b[2*i] = byte(v)
-		b[2*i+1] = byte(v >> 8)
-	}
-	return base64.StdEncoding.EncodeToString(b)
+// taskFileHash: what Get-FileHash prints for update.ps1.
+func taskFileHash() string {
+	h := sha256.Sum256(taskScriptBytes())
+	return strings.ToUpper(hex.EncodeToString(h[:]))
+}
+
+// TaskArguments: the powershell.exe arguments of the scheduled task.
+func TaskArguments() string {
+	return `-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "` + taskFile() + `"`
 }
 
 func DownloadScript(cc string) string {
@@ -401,6 +408,9 @@ try { $u = New-Object Uri 'https://stat.ripe.net/'; $wp = [Net.WebRequest]::GetS
 $t = Get-ScheduledTask -TaskName '` + TaskName + `' -ErrorAction SilentlyContinue
 Write-Output ('TASK|' + [bool]$t)
 if ($t) { Write-Output ('TASKARGS|' + (B64 ("$(@($t.Actions)[0].Execute) $(@($t.Actions)[0].Arguments)"))) }
+$tf = ` + psQuote(taskFile()) + `
+if (Test-Path -LiteralPath $tf) { Write-Output ('TASKFILE|' + (Get-FileHash -LiteralPath $tf -Algorithm SHA256).Hash) }
+if ($t) { try { $ti = Get-ScheduledTaskInfo -TaskName '` + TaskName + `' -ErrorAction Stop; Write-Output ('TASKRESULT|' + [int64]$ti.LastTaskResult + '|' + $ti.LastRunTime.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ', [Globalization.CultureInfo]::InvariantCulture)) } catch {} }
 Write-Output ('OLDTASK|' + [bool](Get-ScheduledTask -TaskName '` + OldTask + `' -ErrorAction SilentlyContinue))
 Write-Output 'IPF-OK'
 `
@@ -464,9 +474,18 @@ func ScheduleScript() string {
 		"Write-Output 'IPF-OK'\r\n"
 }
 
+// UnscheduleScript removes the task and its script file (only that file, and
+// the folder only when it is then empty).
 func UnscheduleScript() string {
 	return "$ErrorActionPreference = 'Stop'\r\n" +
 		"Unregister-ScheduledTask -TaskName " + psQuote(TaskName) + " -Confirm:$false -ErrorAction SilentlyContinue\r\n" +
+		"$d = " + psQuote(taskDir) + "\r\n" +
+		"$f = " + psQuote(taskFile()) + "\r\n" +
+		"$link = (Test-Path -LiteralPath $d) -and (((Get-Item -LiteralPath $d -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)\r\n" +
+		"if (-not $link) {\r\n" +
+		"  if (Test-Path -LiteralPath $f -PathType Leaf) { Remove-Item -LiteralPath $f -Force }\r\n" +
+		"  if ((Test-Path -LiteralPath $d -PathType Container) -and @(Get-ChildItem -LiteralPath $d -Force).Count -eq 0) { Remove-Item -LiteralPath $d -Force }\r\n" +
+		"}\r\n" +
 		"Write-Output 'IPF-OK'\r\n"
 }
 

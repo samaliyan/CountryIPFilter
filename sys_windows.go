@@ -4,7 +4,7 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
@@ -42,15 +42,13 @@ func hidden(cmd *exec.Cmd) {
 }
 
 // psRunner runs a script with Windows PowerShell, without any visible
-// window. The script is handed over in environment variables of the new
-// process only (Base64, in pieces below the 32767-character limit), so no
-// script file is ever written to disk where someone could change it, and
-// nothing depends on how PowerShell treats standard input.
-func psRunner() Runner {
-	boot := encodePS("$t = ''; $i = 0\n" +
-		"while ($true) { $v = [Environment]::GetEnvironmentVariable('IPF_S' + $i); if (-not $v) { break }; $t += $v; $i++ }\n" +
-		"if ($t -eq '') { Write-Output 'IPF-NOSCRIPT'; exit 3 }\n" +
-		". ([ScriptBlock]::Create([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($t))))\n")
+// window: the script is written as a plain .ps1 file into the program's
+// own "run" folder and started with -File (no encoded command lines, which
+// antivirus programs take for malware). While PowerShell runs, the file is
+// held open so that nobody can change or delete it, and its content is
+// checked against what was written before it runs.
+func psRunner(dataDir string) Runner {
+	runDir := filepath.Join(dataDir, "run")
 	return func(name, script string) (string, error) {
 		ps := system32(`WindowsPowerShell\v1.0\powershell.exe`)
 		if _, err := os.Stat(ps); err != nil {
@@ -65,32 +63,155 @@ func psRunner() Runner {
 		case "update":
 			limit = 60 * time.Minute // downloads, a wait for the lock, all rules
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), limit)
-		defer cancel()
-		cmd := exec.CommandContext(ctx, ps, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", boot)
-		env := []string{}
-		for _, e := range os.Environ() {
-			if !strings.HasPrefix(strings.ToUpper(e), "IPF_S") {
-				env = append(env, e)
-			}
-		}
-		enc := base64.StdEncoding.EncodeToString([]byte(script))
-		for i := 0; i*30000 < len(enc); i++ {
-			end := min((i+1)*30000, len(enc))
-			env = append(env, fmt.Sprintf("IPF_S%d=%s", i, enc[i*30000:end]))
-		}
-		cmd.Env = env
-		cmd.WaitDelay = 10 * time.Second // a child left holding the output must not keep us waiting
-		hidden(cmd)
-		out, err := cmd.CombinedOutput()
-		s := strings.ReplaceAll(string(out), "\r\n", "\n")
-		if ctx.Err() == context.DeadlineExceeded {
-			return s, errors.New(T("PowerShell بیش از %d دقیقه طول کشید و متوقف شد (%s)", int(limit.Minutes()), name))
-		}
+		path, release, err := lockedScript(runDir, name, script)
 		if err != nil {
-			return s, fmt.Errorf("%v: %s", err, lastLines(s, 5))
+			return "", fmt.Errorf("script file: %v", err)
 		}
-		return s, nil
+		defer release()
+		run := func(args ...string) (string, error) {
+			ctx, cancel := context.WithTimeout(context.Background(), limit)
+			defer cancel()
+			cmd := exec.CommandContext(ctx, ps, append([]string{"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass"}, args...)...)
+			cmd.WaitDelay = 10 * time.Second // a child left holding the output must not keep us waiting
+			hidden(cmd)
+			out, err := cmd.CombinedOutput()
+			s := strings.ReplaceAll(string(out), "\r\n", "\n")
+			if ctx.Err() == context.DeadlineExceeded {
+				return s, errors.New(T("PowerShell بیش از %d دقیقه طول کشید و متوقف شد (%s)", int(limit.Minutes()), name))
+			}
+			if err != nil {
+				return s, fmt.Errorf("%v: %s", err, lastLines(s, 5))
+			}
+			return s, nil
+		}
+		out, err := run("-File", path)
+		if err != nil && policyBlocked(out) {
+			// Group Policy forbids script files: run the same text as a command
+			out, err = run("-Command", "& ([ScriptBlock]::Create([IO.File]::ReadAllText("+psQuote(path)+", [Text.Encoding]::UTF8)))")
+		}
+		return out, err
+	}
+}
+
+// policyBlocked: PowerShell refused the file because of the execution policy.
+func policyBlocked(out string) bool {
+	o := strings.ToLower(out)
+	// a refused script printed nothing of its own; the error names stay
+	// English in every Windows language
+	if strings.Contains(out, "IPF-") || strings.Contains(out, "|") {
+		return false
+	}
+	return strings.Contains(o, "pssecurityexception") ||
+		strings.Contains(o, "execution polic") || strings.Contains(o, "is not digitally signed") || strings.Contains(o, "running scripts is disabled")
+}
+
+// lockedScript writes the script (UTF-8 with BOM) to a new file, reopens it
+// read-only without write or delete sharing, and checks the content. release
+// closes and deletes it.
+func lockedScript(dir, name, script string) (string, func(), error) {
+	if isReparse(dir) {
+		return "", nil, errors.New("the run folder is a link")
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", nil, err
+	}
+	var rnd [8]byte
+	rand.Read(rnd[:])
+	path := filepath.Join(dir, fmt.Sprintf("%s-%x.ps1", name, rnd))
+	data := append([]byte("\uFEFF"), []byte(script)...)
+	p, _ := syscall.UTF16PtrFromString(path)
+	const (
+		genericRead, genericWrite = 0x80000000, 0x40000000
+		shareRead                 = 0x1
+		createNew, openExisting   = 1, 3
+		flagReparse               = 0x00200000
+	)
+	h, err := syscall.CreateFile(p, genericWrite, 0, nil, createNew, flagReparse, 0)
+	if err != nil {
+		return "", nil, err
+	}
+	var n uint32
+	werr := syscall.WriteFile(h, data, &n, nil)
+	syscall.CloseHandle(h)
+	if werr != nil || int(n) != len(data) {
+		os.Remove(path)
+		return "", nil, fmt.Errorf("write: %v", werr)
+	}
+	r, err := syscall.CreateFile(p, genericRead, shareRead, nil, openExisting, flagReparse, 0)
+	if err != nil {
+		os.Remove(path)
+		return "", nil, err
+	}
+	release := func() {
+		syscall.CloseHandle(r)
+		os.Remove(path)
+	}
+	got := make([]byte, len(data)+1)
+	var m uint32
+	if err := syscall.ReadFile(r, got, &m, nil); err != nil || int(m) != len(data) || string(got[:m]) != string(data) {
+		release()
+		return "", nil, errors.New("the script file was changed before it ran")
+	}
+	return path, release, nil
+}
+
+var folderProgramFiles = syscall.GUID{Data1: 0x905e63b6, Data2: 0xc1bf, Data3: 0x494e, Data4: [8]byte{0xb2, 0x9c, 0x65, 0xb7, 0x32, 0xd3, 0xd2, 0x1a}}
+
+// knownFolder: the real path of a Windows folder (not from an environment
+// variable, which the user could change).
+func knownFolder(id *syscall.GUID) string {
+	p := syscall.NewLazyDLL("shell32.dll").NewProc("SHGetKnownFolderPath")
+	if p.Find() != nil {
+		return ""
+	}
+	var out *uint16
+	if r, _, _ := p.Call(uintptr(unsafe.Pointer(id)), 0, 0, uintptr(unsafe.Pointer(&out))); r != 0 || out == nil {
+		return ""
+	}
+	defer syscall.NewLazyDLL("ole32.dll").NewProc("CoTaskMemFree").Call(uintptr(unsafe.Pointer(out)))
+	var buf []uint16
+	for q := unsafe.Pointer(out); ; q = unsafe.Add(q, 2) {
+		c := *(*uint16)(q)
+		if c == 0 || len(buf) > 1000 {
+			break
+		}
+		buf = append(buf, c)
+	}
+	return string(utf16.Decode(buf))
+}
+
+func init() {
+	// update.ps1 runs as SYSTEM: its folder is locked to Administrators and
+	// SYSTEM (everyone else may only read) before the file is written
+	// without the real Program Files folder the task is not set up at all
+	taskDir = ""
+	if pf := knownFolder(&folderProgramFiles); pf != "" {
+		taskDir = pf + `\Country IP Filter Update`
+	}
+	writeTaskFile = func(dir, name string, data []byte) error {
+		if dir == "" {
+			return errors.New("the Program Files folder was not found")
+		}
+		if isReparse(dir) {
+			return errors.New(dir + " is a link")
+		}
+		// a folder that already exists must have been made by Administrators
+		if _, err := os.Lstat(dir); err == nil && !ownedByAdmins(dir) {
+			return errors.New(dir + " was not made by Administrators; delete it and try again")
+		}
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+		if err := secureData(dir); err != nil {
+			return err
+		}
+		if !ownedByAdmins(dir) {
+			return errors.New(dir + ": owner is not Administrators")
+		}
+		if skipped := resetChildren(dir); len(skipped) > 0 {
+			return errors.New("not safe: " + strings.Join(skipped, ", "))
+		}
+		return writeFileAtomic(filepath.Join(dir, name), data)
 	}
 }
 

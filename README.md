@@ -55,6 +55,10 @@ CountryIPFilter.exe
 - If you manage the server with Remote Desktop from another country, do not add port 3389 (the program warns you).
 - Try it on a test server first.
 
+## Antivirus
+
+The program is not code-signed. Because it changes Windows Firewall rules and creates a Scheduled Task, some antivirus programs may warn about it. It never uses encoded or hidden commands: every PowerShell script it runs is a plain, readable `.ps1` file, and the monthly task runs `C:\Program Files\Country IP Filter Update\update.ps1`, which only Administrators can change. If Microsoft Defender flags a release, please report it as a false positive at https://www.microsoft.com/wdsi/filesubmission. The source is here; you can build the exe yourself with `./build.sh`.
+
 ## Upgrading from Iran IP Filter 3.x
 
 Version 4 finds the rules and the monthly task of version 3 and moves them over by itself (same ports, Iran, same records). Nothing changes for the users. Afterwards delete the old `IranIPFilter.exe`.

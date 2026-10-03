@@ -298,6 +298,8 @@ func Assess(in ViewInput) View {
 			add(Problem{Text: T("به‌روزرسانی خودکار لیست IP کشورها (هر 4 هفته یک بار) خاموش است."), Button: T("روشن کردن به‌روزرسانی"), Kind: FixAutoUpdate, Step: T("روشن کردن به‌روزرسانی خودکار")})
 		case !st.TaskCurrent():
 			add(Problem{Text: T("به‌روزرسانی خودکار با یک نسخه‌ی قدیمی تنظیم شده و باید دوباره تنظیم شود."), Button: T("تنظیم دوباره"), Kind: FixAutoUpdate, Step: T("تنظیم دوباره‌ی به‌روزرسانی خودکار")})
+		case st.TaskFailed():
+			add(Problem{Text: T("به‌روزرسانی خودکار در تاریخ %s اجرا نشد (کد خطای Windows: %s). شاید Group Policy اجرای Script های PowerShell را بسته. تا آن موقع، لیست را با دکمه‌ی «%s» دستی به‌روز کنید.", dateText(st.TaskRun), ltr(fmt.Sprintf("0x%X", st.TaskCode)), T("به‌روزرسانی لیست")), Button: T("به‌روزرسانی لیست"), Kind: FixUpdateList, Step: T("دانلود لیست تازه‌ی IP کشورها")})
 		}
 	}
 

@@ -891,8 +891,17 @@ func (c *Core) EnableFirewall() error                { return c.run("firewall", 
 func (c *Core) RemoveRules() error                   { return c.run("remove", RemoveScript()) }
 func (c *Core) RunUpdate() error                     { return c.run("update", UpdateScript()) }
 
+// writeTaskFile writes update.ps1 (the Windows version locks the folder to
+// Administrators and SYSTEM first, since SYSTEM runs the file).
+var writeTaskFile = func(dir, name string, data []byte) error {
+	return writeFileAtomic(filepath.Join(dir, name), data)
+}
+
 func (c *Core) Schedule(on bool) error {
 	if on {
+		if err := writeTaskFile(taskDir, "update.ps1", taskScriptBytes()); err != nil {
+			return err
+		}
 		return c.run("task", ScheduleScript())
 	}
 	return c.run("task", UnscheduleScript())

@@ -9,12 +9,15 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
 )
 
 var Version = "dev"
+
+var runName = regexp.MustCompile(`^[a-z-]+-[0-9a-f]{16}\.ps1$`)
 
 func main() {
 	// load system DLLs only from System32
@@ -107,10 +110,20 @@ func main() {
 			T("برای امنیت، برنامه باز نمی‌شود. آن را پاک کنید و برنامه را دوباره باز کنید."), appTitle(), MB_OK|MB_ICONERROR)
 		return
 	}
+	// script files left behind by a run that was cut off (power loss ...)
+	// (only our own names, and never through a link)
+	if runDir := filepath.Join(dataDir, "run"); !isReparse(dataDir) && !isReparse(runDir) {
+		old, _ := filepath.Glob(filepath.Join(runDir, "*.ps1"))
+		for _, f := range old {
+			if runName.MatchString(filepath.Base(f)) && !isReparse(f) {
+				os.Remove(f)
+			}
+		}
+	}
 	core := &Core{
 		Dir:    dataDir,
 		ExeDir: exeDir,
-		Run:    psRunner(),
+		Run:    psRunner(dataDir),
 		HTTP:   &http.Client{Timeout: 90 * time.Second, Transport: &http.Transport{Proxy: http.ProxyFromEnvironment, TLSHandshakeTimeout: 20 * time.Second}},
 	}
 

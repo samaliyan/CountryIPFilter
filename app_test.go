@@ -809,7 +809,7 @@ func TestAssessInvariants(t *testing.T) {
 										st := Status{Profiles: pr, Ours: ours, Conflicts: cs, Blocks: bs, Tags: tg}
 										switch task {
 										case 1:
-											st.Task, st.TaskArgs = true, `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe `+TaskArguments()
+											st.Task, st.TaskArgs, st.TaskFile = true, `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe `+TaskArguments(), taskFileHash()
 										case 2:
 											st.Task, st.TaskArgs = true, `C:\x\CountryIPFilter.exe --update`
 										}
@@ -1065,9 +1065,40 @@ func TestInactiveProfileIgnored(t *testing.T) {
 	}
 }
 
-func TestUpdateScriptSize(t *testing.T) {
-	if n := len(TaskArguments()); n > 30000 {
-		t.Fatalf("task arguments too long: %d", n)
+// The monthly task runs a plain script file: no encoded commands, which
+// antivirus programs take for malware.
+func TestTaskRunsPlainFile(t *testing.T) {
+	fw := &fakeFW{}
+	a, _, _ := newTestApp(t, fw)
+	a.Main()
+	data, err := os.ReadFile(filepath.Join(taskDir, "update.ps1"))
+	if err != nil || string(data) != string(taskScriptBytes()) {
+		t.Fatalf("update.ps1 not written: %v", err)
+	}
+	for _, bad := range []string{"EncodedCommand", "FromBase64String('", "ScriptBlock]::Create"} {
+		if strings.Contains(TaskArguments(), bad) || strings.Contains(string(data), bad) {
+			t.Fatalf("%s in the task", bad)
+		}
+	}
+	if !strings.Contains(TaskArguments(), `-File "`) || !a.last.TaskCurrent() {
+		t.Fatalf("task: %s current=%v", TaskArguments(), a.last.TaskCurrent())
+	}
+	// someone changes update.ps1: the task is set up again
+	os.WriteFile(filepath.Join(taskDir, "update.ps1"), []byte("changed"), 0o644)
+	a2, _, _ := startApp(t, a.core, lists)
+	if b, _ := os.ReadFile(filepath.Join(taskDir, "update.ps1")); string(b) != string(taskScriptBytes()) || !a2.last.TaskCurrent() {
+		t.Fatal("a changed update.ps1 must be written again")
+	}
+	// the task of version 4.0.0 (an encoded command line) is replaced too
+	fw.taskArgs = `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -Command "& ([ScriptBlock]::Create([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('abc'))))"`
+	a3, _, _ := startApp(t, a.core, lists)
+	if !strings.HasSuffix(fw.taskArgs, TaskArguments()) || !a3.last.TaskCurrent() {
+		t.Fatalf("old task not replaced: %s", fw.taskArgs)
+	}
+	// turning off removes the file
+	a3.TurnOff()
+	if _, err := os.Stat(filepath.Join(taskDir, "update.ps1")); err == nil {
+		t.Fatal("update.ps1 must be removed with the task")
 	}
 }
 

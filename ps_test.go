@@ -55,8 +55,8 @@ func TestPSParse(t *testing.T) {
 	for name, s := range scripts {
 		fmt.Fprintf(&b, "$e = $null; [void][System.Management.Automation.Language.Parser]::ParseInput(%s, [ref]$null, [ref]$e); if ($e.Count -gt 0) { Write-Output ('ERR %s ' + $e[0].Message + ' line ' + $e[0].Extent.StartLineNumber) } else { Write-Output 'OK %s' }\n", psQuote(s), name, name)
 	}
-	// the scheduled task's own command line
-	fmt.Fprintf(&b, "$e = $null; [void][System.Management.Automation.Language.Parser]::ParseInput(%s, [ref]$null, [ref]$e); Write-Output ('TASKARGS ' + $e.Count)\n", psQuote(strings.TrimSuffix(strings.SplitN(TaskArguments(), `-Command "`, 2)[1], `"`)))
+	// update.ps1 exactly as written
+	fmt.Fprintf(&b, "$e = $null; [void][System.Management.Automation.Language.Parser]::ParseInput(%s, [ref]$null, [ref]$e); Write-Output ('TASKARGS ' + $e.Count)\n", psQuote(strings.TrimPrefix(string(taskScriptBytes()), "\uFEFF")))
 	out := runPS(t, b.String())
 	if strings.Contains(out, "ERR") || !strings.Contains(out, "TASKARGS 0") || strings.Count(out, "OK ") != len(scripts) {
 		t.Fatalf("parse errors:\n%s", out)
@@ -267,6 +267,13 @@ func TestPSMonthlyUpdate(t *testing.T) {
 	}
 	okTag := fmt.Sprintf("2026-08-01T00:00:00Z,2600,%d", 2600*1024)
 
+	// a good update, run the way the task runs it: update.ps1 as a script file
+	f := filepath.Join(t.TempDir(), "update.ps1")
+	os.WriteFile(f, taskScriptBytes(), 0o644)
+	out0 := runPS(t, start(okTag)+psLists(lists)+"& "+psQuote(f)+"\nDump\n")
+	if !strings.Contains(out0, "IPF-OK") || !strings.Contains(out0, ",OK,task]") {
+		t.Fatalf("update.ps1 as a file:\n%s", out0)
+	}
 	// a good update: IR 1966 + DE 700 ranges, written to all three sets
 	r, out := run(start(okTag), lists)
 	if !strings.Contains(out, "IPF-OK") || !strings.HasSuffix(last(r), ",OK,task]") {

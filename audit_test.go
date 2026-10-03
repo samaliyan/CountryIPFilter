@@ -189,6 +189,10 @@ func TestTaskMustRunWindowsPowerShell(t *testing.T) {
 		t.Fatal("another powershell.exe must not count")
 	}
 	st.TaskArgs = `C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe ` + TaskArguments()
+	if st.TaskCurrent() {
+		t.Fatal("without update.ps1 (or with a changed one) it does not count")
+	}
+	st.TaskFile = strings.ToLower(taskFileHash())
 	if !st.TaskCurrent() {
 		t.Fatal("the real one counts")
 	}
@@ -289,4 +293,32 @@ func TestLongPathPrefix(t *testing.T) {
 		t.Fatal("device and UNC paths must be refused")
 	}
 	_ = c
+}
+
+// The monthly task cannot run (for example Group Policy forbids script
+// files): the window says so instead of staying quiet.
+func TestTaskFailureShown(t *testing.T) {
+	out := "PROFILE|Public|True|Block|NotConfigured|True\nTASK|True\nTASKARGS|" + b64(`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe `+TaskArguments()) +
+		"\nTASKFILE|" + taskFileHash() + "\nTASKRESULT|1|2026-09-04T00:45:00Z\nIPF-OK\n"
+	st, err := ParseStatus(out, []Entry{TCP(808)})
+	if err != nil || !st.TaskCurrent() || !st.TaskFailed() {
+		t.Fatalf("%v %+v", err, st)
+	}
+	st.Ours = []OurRule{{Name: "CountryIPFilter-TCP-01", Set: "TCP", Index: 1, Enabled: true, Ports: []int{808}, Count: 1, Proto: "TCP"}}
+	v := Assess(ViewInput{St: st, Entries: []Entry{TCP(808)}, Countries: []string{"IR"}})
+	found := false
+	for _, p := range v.Problems {
+		found = found || strings.Contains(p.Text, "0x1")
+	}
+	if !found {
+		t.Fatalf("task failure must be shown: %+v", v.Problems)
+	}
+	// "has not run yet" (0x41303) is not a failure
+	st.TaskCode = 0x41303
+	if st.TaskFailed() {
+		t.Fatal("not yet run")
+	}
+	if !strings.HasPrefix(taskDir, os.TempDir()) && !strings.Contains(taskDir, "Program Files") {
+		t.Fatal(taskDir)
+	}
 }

@@ -4,10 +4,13 @@ package main
 // well enough to keep a state and print what the real status script prints.
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -264,6 +267,10 @@ func (f *fakeFW) run(name, script string) (string, error) {
 		if f.task {
 			fmt.Fprintf(&b, "TASKARGS|%s\r\n", b64(f.taskArgs))
 		}
+		if data, err := os.ReadFile(filepath.Join(taskDir, "update.ps1")); err == nil {
+			h := sha256.Sum256(data)
+			fmt.Fprintf(&b, "TASKFILE|%X\r\n", h[:])
+		}
 		fmt.Fprintf(&b, "OLDTASK|%s\r\n", boolPS(f.oldTask))
 		b.WriteString("IPF-OK\r\n")
 	case "apply":
@@ -346,6 +353,9 @@ func (f *fakeFW) run(name, script string) (string, error) {
 		} else {
 			f.task = true
 			f.taskArgs = `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe ` + TaskArguments()
+		}
+		if strings.Contains(script, "Unregister") {
+			os.Remove(filepath.Join(taskDir, "update.ps1"))
 		}
 		b.WriteString("IPF-OK\r\n")
 	case "update":
@@ -511,3 +521,15 @@ func clientFor(srv *httptest.Server) *http.Client {
 }
 
 func offline(t *testing.T, c *Core) { c.HTTP = clientFor(withRipe(t, nil, 500)) }
+
+// TestMain keeps update.ps1 of the tests in a folder of their own.
+func TestMain(m *testing.M) {
+	dir, err := os.MkdirTemp("", "cif-task")
+	if err != nil {
+		panic(err)
+	}
+	taskDir = dir
+	code := m.Run()
+	os.RemoveAll(dir)
+	os.Exit(code)
+}
