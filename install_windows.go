@@ -51,24 +51,34 @@ func fileExists(p string) bool {
 	return err == nil && !st.IsDir()
 }
 
-// offerInstall asks to install (or update) the program in Program Files.
-// true: the installed copy was started and this one must close.
-func offerInstall(self, exeDir, dir string) bool {
-	q := T("برنامه روی این کامپیوتر نصب شود؟") + nl + nl +
+// runSetup installs (or updates) the program in Program Files and opens the
+// installed copy. Whatever the answer, this copy never runs from where it is.
+func runSetup(self, exeDir, dir string) {
+	if dir == "" {
+		messageBox(0, T("پوشه‌ی Program Files پیدا نشد، پس برنامه نصب نمی‌شود."), appTitle(), MB_OK|MB_ICONERROR)
+		return
+	}
+	// the installed program must be closed: its file is replaced
+	if !singleInstance(`Global\CountryIPFilter`) {
+		messageBox(0, T("برنامه همین حالا باز است. اول پنجره‌ی برنامه را ببندید و بعد دوباره همین فایل Setup را اجرا کنید."), appTitle(), MB_OK|MB_ICONWARNING)
+		return
+	}
+	q := T("نصب برنامه، نسخه‌ی %s", Version) + nl + nl +
 		T("برنامه در این پوشه نصب می‌شود (فقط Administrators می‌توانند آن را تغییر دهند):") + nl + dir + nl + nl +
 		T("یک Shortcut در منوی Start و روی Desktop ساخته می‌شود. حذف برنامه از Settings و بخش Apps انجام می‌شود.")
 	if fileExists(dir + `\CountryIPFilter.exe`) {
-		q = T("نسخه‌ی نصب‌شده‌ی برنامه با همین نسخه به‌روز شود؟") + nl + nl + dir
+		q = T("این برنامه روی این کامپیوتر نصب است. به نسخه‌ی %s به‌روز شود؟", Version) + nl + nl + dir +
+			nl + nl + T("تنظیمات و Rule ها عوض نمی‌شوند.")
 	}
-	q += nl + nl + T("اگر No را بزنید، برنامه از همین‌جا باز می‌شود.")
+	q += nl + nl + T("برای نصب Yes را بزنید. با No چیزی نصب نمی‌شود و برنامه بسته می‌شود.")
 	if messageBox(0, q, appTitle(), MB_YESNO|MB_ICONQUESTION) != IDYES {
-		return false
+		return
 	}
 	if err := install(self, exeDir, dir); err != nil {
-		messageBox(0, T("نصب انجام نشد:")+nl+err.Error()+nl+nl+T("برنامه از همین‌جا باز می‌شود."), appTitle(), MB_OK|MB_ICONERROR)
-		return false
+		messageBox(0, T("نصب انجام نشد:")+nl+err.Error(), appTitle(), MB_OK|MB_ICONERROR)
+		return
 	}
-	// the installed copy takes over the window
+	// the installed copy takes over
 	if mutexHandle != 0 {
 		pCloseHandle.Call(mutexHandle)
 		mutexHandle = 0
@@ -78,7 +88,6 @@ func offerInstall(self, exeDir, dir string) bool {
 	if r <= 32 {
 		messageBox(0, T("برنامه نصب شد ولی خودکار باز نشد. آن را از منوی Start باز کنید."), appTitle(), MB_OK|MB_ICONINFO)
 	}
-	return true
 }
 
 // install copies the program, its guides and its settings, then adds the
@@ -121,12 +130,12 @@ func install(self, exeDir, dir string) error {
 	if err := writeFileAtomic(filepath.Join(dir, "CountryIPFilter.exe"), b); err != nil {
 		return err
 	}
-	for _, g := range []string{"Guide.html", "Guide-fa.html"} {
-		if b, err := os.ReadFile(filepath.Join(exeDir, g)); err == nil {
-			writeFileAtomic(filepath.Join(dir, g), b)
+	for name, b := range guides() {
+		if err := writeFileAtomic(filepath.Join(dir, name), b); err != nil {
+			return err
 		}
 	}
-	// the choices made so far go along (unless the installed copy has its own)
+	// the choices of a copy used without installing (versions 4.0.0, 4.0.1) go along (unless the installed copy has its own)
 	for _, f := range []string{"ports.txt", "countries.txt", "settings.txt"} {
 		src, dst := filepath.Join(exeDir, "data", f), filepath.Join(dir, "data", f)
 		if b, err := os.ReadFile(src); err == nil && !fileExists(dst) {

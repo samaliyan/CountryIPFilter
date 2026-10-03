@@ -20,14 +20,13 @@ li{margin:6px 0}
 </head>
 <body><main>
 <h1>Country IP Filter (version 4.0)</h1>
-<p>This program lets only IPs of the countries you choose connect to chosen ports or programs of this server (for example Revit Server, Remote Desktop or a database). No installation is needed.</p>
+<p>This program lets only IPs of the countries you choose connect to chosen ports or programs of this server (for example Revit Server, Remote Desktop or a database).</p>
 
 <h2>Use</h2>
 <ol>
-<li>Unpack the zip file.</li>
-<li>Double-click <span class="en">CountryIPFilter.exe</span>.</li>
+<li>Double-click the setup file, for example <span class="en">CountryIPFilter-Setup-4.0.3.exe</span>.</li>
 <li>Press <span class="en">Yes</span> in the Windows prompt.</li>
-<li>Answer <span class="en">Yes</span> to "Install the program on this computer?". It installs itself to <span class="en">C:\Program Files\CountryIPFilter</span> (only <span class="en">Administrators</span> can change that folder), adds shortcuts to the Start menu and the Desktop, and opens. From then on open it from the Start menu.</li>
+<li>Answer <span class="en">Yes</span> to the install question. The program installs itself to <span class="en">C:\Program Files\CountryIPFilter</span> (only <span class="en">Administrators</span> can change that folder), adds shortcuts to the Start menu and the Desktop, and opens. From then on open it from the Start menu.</li>
 <li>Under "Countries", choose a country in the list.</li>
 <li>Press "Add country". Repeat for every country whose users must connect.</li>
 <li>Under "Ports and programs", choose <span class="en">TCP</span> or <span class="en">UDP</span>, then type the port number or choose a service in the list.</li>
@@ -80,7 +79,7 @@ li{margin:6px 0}
 <li>Users whose VPN gives them an IP of another country cannot connect; they must switch the VPN off.</li>
 <li>Only IPv4 is let in.</li>
 <li>The program never switches off, without asking, Rules that might also cut Remote Desktop, SSH or other services.</li>
-<li>The program's files are only in the <span class="en">data</span> folder next to it. The other settings are stored inside the <span class="en">Windows Firewall</span> Rules themselves, so moving the program loses nothing.</li>
+<li>The program's files are in <span class="en">C:\Program Files\CountryIPFilter\data</span>. The other settings are stored inside the <span class="en">Windows Firewall</span> Rules themselves. To update, just run the setup file of the new version.</li>
 <li>The monthly update is a Windows <span class="en">Scheduled Task</span> that runs only <span class="en">PowerShell</span> and does not need the program file. A new list that is much smaller or much bigger than the last one is not used.</li>
 <li>Upgrading from "Iran IP Filter" 3.x: the old Rules are moved over automatically; nothing changes for the users. Then delete <span class="en">IranIPFilter.exe</span>.</li>
 <li>If there is a problem: press "Copy problems" above the list of problems, or "Technical details" and then "Copy text", and send the text to support. In any message box, Ctrl+C copies its text.</li>

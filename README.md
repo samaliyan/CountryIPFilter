@@ -15,7 +15,7 @@ Typical use: a server whose users are all in one or a few countries (a Revit Ser
 - **Clear state.** A colored banner and a table show, for each port or program, whether it is open only to the chosen countries, still open to everyone, or closed. Every problem comes with the one button that fixes it.
 - **Old rules are handled.** Existing Windows Firewall rules that open the same ports to everyone are found and switched off (and switched back on when you turn protection off). Rules that could also cut Remote Desktop or SSH are never switched off without asking.
 - **Monthly update.** The country lists are refreshed every 4 weeks by a Scheduled Task that runs only PowerShell (it does not need the program file). A new list that is much smaller, much bigger or broken is refused, and the reason is shown.
-- **Installs itself.** On first start it offers to install itself to `C:\Program Files\CountryIPFilter`, with Start menu and Desktop shortcuts; it is removed in Settings, Apps. All settings that matter are stored inside the firewall rules themselves.
+- **A normal setup.** The release is one setup file. It installs the program to `C:\Program Files\CountryIPFilter`, with Start menu and Desktop shortcuts; it is removed in Settings, Apps. All settings that matter are stored inside the firewall rules themselves.
 
 ## How it works
 
@@ -27,15 +27,15 @@ Typical use: a server whose users are all in one or a few countries (a Revit Ser
 
 ## Use
 
-1. Download the zip from Releases and unpack it.
-2. Double-click:
+1. Download the setup file from Releases.
+2. Double-click it:
 
 ```
-CountryIPFilter.exe
+CountryIPFilter-Setup-4.0.3.exe
 ```
 
 3. Answer Yes to the Windows prompt.
-4. Answer Yes to "Install the program on this computer?". It installs itself to `C:\Program Files\CountryIPFilter` (only Administrators can change that folder), adds shortcuts to the Start menu and the Desktop, and opens. It can be removed in Settings, Apps (turn protection off first).
+4. Answer Yes to the install question. It installs itself to `C:\Program Files\CountryIPFilter` (only Administrators can change that folder), adds shortcuts to the Start menu and the Desktop, and opens. It can be removed in Settings, Apps (turn protection off first).
 5. Under "Countries", choose a country and press "Add country".
 6. Under "Ports and programs", type a port (or pick one from the list) and press "Add port".
 7. Press the big "Turn protection on" button, read the message and press Yes.
@@ -58,6 +58,8 @@ The program is not code-signed. Because it changes Windows Firewall rules and cr
 
 Version 4 finds the rules and the monthly task of version 3 and moves them over by itself (same ports, Iran, same records). Nothing changes for the users. Afterwards delete the old `IranIPFilter.exe`.
 
+If you used 4.0.0 or 4.0.1 from a folder of your own (without installing): run the setup; it takes the choices from that folder if the setup file is in it, and the protection stays on. Afterwards delete the old folder.
+
 ## Requirements
 
 - Windows Server 2016 or newer, or Windows 10/11 (Windows Server 2012 R2 needs WMF 5.1)
@@ -72,7 +74,7 @@ Go 1.24 and Python 3. No outside libraries.
 ./build.sh
 ```
 
-This runs `go vet` (also for Windows), the tests, builds the resource file (icon, manifest, version) and writes `dist/CountryIPFilter.exe` with the guides next to it.
+This runs `go vet` (also for Windows), the tests, builds the resource file (icon, manifest, version) and writes `dist/CountryIPFilter-Setup-<version>.exe` (the guides are built in).
 
 The tests run on any system: Windows Firewall is simulated. When PowerShell 7 (`pwsh`) is installed, the generated PowerShell scripts are also parsed and run against fake firewall cmdlets.
 
@@ -106,7 +108,7 @@ MIT, see LICENSE.
 
 این برنامه روی یک سرور ویندوزی، پورت‌ها یا برنامه‌هایی را که انتخاب می‌کنید فقط برای IP های کشورهایی که انتخاب می‌کنید باز می‌کند. بقیه‌ی دنیا نمی‌توانند وصل شوند.
 
-- با اولین اجرا، خودش را نصب می‌کند و در منوی Start و روی Desktop یک Shortcut می‌سازد.
+- یک فایل Setup است. برنامه را نصب می‌کند و در منوی Start و روی Desktop یک Shortcut می‌سازد.
 - همه‌ی کارها از داخل پنجره‌ی برنامه انجام می‌شود و لازم نیست دستوری تایپ کنید.
 - یک یا چند کشور را می‌شود با هم انتخاب کرد.
 - پورت TCP، پورت UDP یا یک برنامه (فایل exe) را می‌شود اضافه کرد. یک لیست از پورت‌های معروف هم دارد.
@@ -115,15 +117,15 @@ MIT, see LICENSE.
 
 ### استفاده
 
-1. فایل zip را بیرون بکشید.
-2. روی این فایل دوبار کلیک کنید:
+1. فایل Setup را از قسمت Releases دانلود کنید.
+2. روی آن دوبار کلیک کنید:
 
 ```
-CountryIPFilter.exe
+CountryIPFilter-Setup-4.0.3.exe
 ```
 
 3. در پیام ویندوز، Yes را بزنید.
-4. به سؤال «برنامه روی این کامپیوتر نصب شود؟» جواب Yes بدهید. برنامه خودش در این پوشه نصب می‌شود و باز می‌شود:
+4. به سؤال نصب جواب Yes بدهید. برنامه خودش در این پوشه نصب می‌شود و باز می‌شود:
 
 ```
 C:\Program Files\CountryIPFilter

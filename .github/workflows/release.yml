@@ -1,6 +1,6 @@
 # Every push: tests. A push whose commit message contains [release]:
-# builds CountryIPFilter.exe (version from the VERSION file) and publishes
-# it as a GitHub Release with the two guides.
+# builds CountryIPFilter-Setup-<version>.exe (version from the VERSION file)
+# and publishes it as a GitHub Release.
 name: build
 
 on:
@@ -26,11 +26,6 @@ jobs:
         run: |
           chmod +x build.sh
           ./build.sh "${{ steps.v.outputs.version }}"
-      - name: Package
-        run: |
-          mkdir -p pkg/CountryIPFilter
-          cp dist/* pkg/CountryIPFilter/
-          cd pkg && zip -r "../CountryIPFilter-${{ steps.v.outputs.version }}.zip" CountryIPFilter
       - name: Release
         if: contains(github.event.head_commit.message, '[release]')
         uses: softprops/action-gh-release@v2
@@ -38,5 +33,5 @@ jobs:
           tag_name: v${{ steps.v.outputs.version }}
           name: Country IP Filter ${{ steps.v.outputs.version }}
           body: |
-            Download CountryIPFilter-${{ steps.v.outputs.version }}.zip, unpack it and run CountryIPFilter.exe; it offers to install itself to C:\Program Files\CountryIPFilter. See Guide.html (English) or Guide-fa.html (Persian).
-          files: CountryIPFilter-${{ steps.v.outputs.version }}.zip
+            Download CountryIPFilter-Setup-${{ steps.v.outputs.version }}.exe and run it. It installs the program to C:\Program Files\CountryIPFilter, with shortcuts in the Start menu and on the Desktop. Remove it in Settings, Apps.
+          files: dist/CountryIPFilter-Setup-${{ steps.v.outputs.version }}.exe

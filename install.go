@@ -5,7 +5,25 @@ package main
 // Settings, Apps. These are the PowerShell parts; the steps are in
 // install_windows.go.
 
-import "strings"
+import (
+	"embed"
+	"strings"
+)
+
+//go:embed docs/Guide.html docs/Guide-fa.html
+var guideFiles embed.FS
+
+// guides: the two guides, built into the program file, copied next to the
+// installed program.
+func guides() map[string][]byte {
+	out := map[string][]byte{}
+	for _, n := range []string{"Guide.html", "Guide-fa.html"} {
+		if b, err := guideFiles.ReadFile("docs/" + n); err == nil {
+			out[n] = b
+		}
+	}
+	return out
+}
 
 const (
 	uninstallKey = `HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CountryIPFilter`

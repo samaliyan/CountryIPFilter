@@ -2,7 +2,8 @@
 
 // CountryIPFilter.exe - opens chosen TCP/UDP ports and programs of this
 // server only for the IPv4 ranges of chosen countries, using Windows
-// Firewall. No installation: double-click.
+// Firewall. Started from anywhere but its folder in Program Files it is
+// only a setup: it installs itself there and opens the installed copy.
 package main
 
 import (
@@ -42,6 +43,16 @@ func main() {
 		return
 	}
 	exeDir := filepath.Dir(self)
+	dir := installDir()
+	installed := dir != "" && strings.EqualFold(filepath.Base(self), "CountryIPFilter.exe") && (strings.EqualFold(filepath.Clean(exeDir), filepath.Clean(dir)) || sameDir(exeDir, dir))
+	if !installed && !remove {
+		// a setup: nothing is written next to this file and it never runs from here
+		if l := (&Core{Dir: filepath.Join(exeDir, "data")}).LoadLang(); l != "" {
+			lang = l
+		}
+		runSetup(self, exeDir, dir)
+		return
+	}
 	if runningFromZip(exeDir) {
 		messageBox(0, T("برنامه از داخل فایل فشرده (zip) باز شده است.\r\n\r\n")+
 			T("اول پوشه‌ی برنامه را از فایل zip بیرون بکشید (مثلاً روی دسکتاپ) و بعد برنامه را از همان‌جا باز کنید. ")+
@@ -82,13 +93,6 @@ func main() {
 		uninstall(self)
 		return
 	}
-	// started from anywhere but Program Files (Downloads ...): offer to install
-	if d := installDir(); d != "" && !restart && !strings.EqualFold(filepath.Clean(exeDir), filepath.Clean(d)) && !sameDir(exeDir, d) {
-		if offerInstall(self, exeDir, d) {
-			return
-		}
-	}
-
 	os.MkdirAll(dataDir, 0o755)
 	// only Administrators may change the program and its data: a folder of
 	// its own is locked as a whole, otherwise at least the data folder

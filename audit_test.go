@@ -341,3 +341,13 @@ func TestUninstallDeletesOnlyNamedFiles(t *testing.T) {
 		}
 	}
 }
+
+// The setup is one file: both guides are built in and are real pages.
+func TestGuidesBuiltIn(t *testing.T) {
+	g := guides()
+	for _, n := range []string{"Guide.html", "Guide-fa.html"} {
+		if !strings.Contains(string(g[n]), "</html>") {
+			t.Errorf("%s not built in", n)
+		}
+	}
+}
