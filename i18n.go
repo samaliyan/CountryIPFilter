@@ -465,7 +465,10 @@ var english = map[string]string{
 	"پوشه‌ی Program Files پیدا نشد، پس برنامه نصب نمی‌شود.":                                                        "The Program Files folder was not found, so the program cannot be installed.",
 	"برنامه همین حالا باز است. اول پنجره‌ی برنامه را ببندید و بعد دوباره همین فایل Setup را اجرا کنید.":            "The program is open right now. Close its window first, then run this Setup file again.",
 	"نصب برنامه، نسخه‌ی %s": "Install the program, version %s",
-	"این برنامه روی این کامپیوتر نصب است. به نسخه‌ی %s به‌روز شود؟":       "The program is installed on this computer. Update it to version %s?",
-	"تنظیمات و Rule ها عوض نمی‌شوند.":                                     "The settings and the Rules stay as they are.",
-	"برای نصب Yes را بزنید. با No چیزی نصب نمی‌شود و برنامه بسته می‌شود.": "Press Yes to install. With No nothing is installed and the program closes.",
+	"این برنامه روی این کامپیوتر نصب است. به نسخه‌ی %s به‌روز شود؟":                               "The program is installed on this computer. Update it to version %s?",
+	"تنظیمات و Rule ها عوض نمی‌شوند.":                                                             "The settings and the Rules stay as they are.",
+	"برای نصب Yes را بزنید. با No چیزی نصب نمی‌شود و برنامه بسته می‌شود.":                         "Press Yes to install. With No nothing is installed and the program closes.",
+	"جواب RIPEstat تاریخ نداشت، پس استفاده نشد.":                                                  "The RIPEstat answer had no date, so it was not used.",
+	"لیست RIPEstat به‌روز نیست (تاریخ لیست: %s)، پس استفاده نشد. چند روز بعد دوباره امتحان کنید.": "The RIPEstat list is not up to date (list date: %s), so it was not used. Try again in a few days.",
+	"لیست RIPEstat به‌روز نبود (بیشتر از 30 روز) و استفاده نشد؛ لیست قبلی سر جایش ماند.":          "The RIPEstat list was not up to date (older than 30 days) and was not used; the previous list stayed.",
 }

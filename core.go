@@ -639,11 +639,31 @@ func ParseRanges(raw []byte) ([]string, error) {
 	return out, nil
 }
 
+// maxListAge: a RIPEstat list older than this is not used (RIPEstat
+// normally has the registries' data of the last few days).
+const maxListDays = 30
+
+const maxListAge = maxListDays * 24 * time.Hour
+
+var timeNow = time.Now
+
+// listTime reads the date of the data in a RIPEstat answer ("query_time").
+func listTime(s string) (time.Time, bool) {
+	for _, f := range []string{"2006-01-02T15:04:05", time.RFC3339, "2006-01-02T15:04:05.999999"} {
+		if t, err := time.Parse(f, s); err == nil {
+			return t.UTC(), true
+		}
+	}
+	return time.Time{}, false
+}
+
 // parseRIPE is for downloads: only the RIPEstat answer itself is accepted
-// (not a page a proxy put in its place), and it must have the IPv4 list.
+// (not a page a proxy put in its place), it must have the IPv4 list, and its
+// data must be recent.
 func parseRIPE(raw []byte) ([]string, error) {
 	var j struct {
 		Data struct {
+			QueryTime string `json:"query_time"`
 			Resources struct {
 				IPv4 *[]string `json:"ipv4"`
 			} `json:"resources"`
@@ -651,6 +671,13 @@ func parseRIPE(raw []byte) ([]string, error) {
 	}
 	if err := json.Unmarshal(raw, &j); err != nil || j.Data.Resources.IPv4 == nil {
 		return nil, errors.New(T("جواب سرور لیست IP نبود (شاید یک Proxy یا Firewall جلوی آن را گرفته)"))
+	}
+	qt, ok := listTime(j.Data.QueryTime)
+	if !ok {
+		return nil, errors.New(T("جواب RIPEstat تاریخ نداشت، پس استفاده نشد."))
+	}
+	if age := timeNow().UTC().Sub(qt); age > maxListAge || age < -48*time.Hour {
+		return nil, errors.New(T("لیست RIPEstat به‌روز نیست (تاریخ لیست: %s)، پس استفاده نشد. چند روز بعد دوباره امتحان کنید.", qt.Format("2006-01-02")))
 	}
 	var valid []string
 	for _, it := range *j.Data.Resources.IPv4 {

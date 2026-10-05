@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func pwsh(t *testing.T) string {
@@ -314,16 +315,31 @@ func TestPSMonthlyUpdate(t *testing.T) {
 		t.Fatalf("download: %s", last(r))
 	}
 	// a country with no ranges: refused
-	r, _ = run(start(okTag), map[string]string{"IR": lists["IR"], "DE": `{"data":{"resources":{"ipv4":[]}}}`})
+	r, _ = run(start(okTag), map[string]string{"IR": lists["IR"], "DE": ripeWrap(`"ipv4":[]`)})
 	if !strings.HasSuffix(last(r), ",FAIL,list]") {
 		t.Fatalf("empty country: %s", last(r))
 	}
 	// an answer without the list (a proxy page, or JSON without ipv4) is refused
-	for _, bad := range []string{"<html>blocked</html>", `{"data":{"resources":{}}}`, `{"data":{"resources":{"ipv4":["bad","10.0.0.0/8"]}}}`, `{"data":{"resources":{"ipv4":["1.2.3.٤/24"]}}}`} {
+	for _, bad := range []string{"<html>blocked</html>", ripeWrap(``), ripeWrap(`"ipv4":["bad","10.0.0.0/8"]`), ripeWrap(`"ipv4":["1.2.3.٤/24"]`)} {
 		r, out = run(start(okTag), map[string]string{"IR": lists["IR"], "DE": bad})
 		if !strings.HasSuffix(last(r), ",FAIL,list]") || r["CountryIPFilter-TCP-03"].count != 200 {
 			t.Fatalf("%s: %s\n%s", bad, last(r), out)
 		}
+	}
+	// old data, no date, or a date in the future: refused, nothing changed
+	stale := func(d string) string {
+		return strings.Replace(lists["DE"], lists["DE"][strings.Index(lists["DE"], `"query_time":"`)+14:strings.Index(lists["DE"], `"query_time":"`)+33], d, 1)
+	}
+	for _, bad := range []string{stale(time.Now().UTC().AddDate(0, 0, -40).Format("2006-01-02T15:04:05")), stale(time.Now().UTC().AddDate(0, 0, 5).Format("2006-01-02T15:04:05")), strings.Replace(lists["DE"], `"query_time"`, `"other"`, 1)} {
+		r, out = run(start(okTag), map[string]string{"IR": lists["IR"], "DE": bad})
+		if !strings.HasSuffix(last(r), ",FAIL,old]") || r["CountryIPFilter-TCP-03"].count != 200 {
+			t.Fatalf("old list: %s\n%s", last(r), out)
+		}
+	}
+	// 29 days old is still fine
+	r, _ = run(start(okTag), map[string]string{"IR": lists["IR"], "DE": stale(time.Now().UTC().AddDate(0, 0, -29).Format("2006-01-02T15:04:05"))})
+	if !strings.HasSuffix(last(r), ",OK,task]") {
+		t.Fatalf("29 days: %s", last(r))
 	}
 	// one small country shrinking is caught even when the total looks fine
 	perTag := okTag + "] [CCN=IR:" + fmt.Sprint(1966*1024) + ",DE:" + fmt.Sprint(700*1024)

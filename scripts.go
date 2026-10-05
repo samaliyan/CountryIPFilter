@@ -229,6 +229,16 @@ foreach ($c in $cc) {
   $list = $null
   if ($j -isnot [string]) { try { $list = $j.data.resources.ipv4 } catch {} }
   if ($null -eq $list) { Fail 'list'; return }
+  # only recent data: RIPEstat says how old its list is
+  $qt = $null
+  try {
+    $q = $j.data.query_time
+    if ($q -is [datetime]) { $qt = [datetime]::SpecifyKind($q, 'Utc') }
+    elseif ("$q" -cmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}') { $qt = [datetime]::ParseExact($Matches[0], 'yyyy-MM-ddTHH:mm:ss', [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]'AssumeUniversal,AdjustToUniversal') }
+  } catch {}
+  if ($null -eq $qt) { Fail 'old'; return }
+  $age = ([datetime]::UtcNow - $qt).TotalDays
+  if ($age -gt ` + strconv.Itoa(maxListDays) + ` -or $age -lt -2) { Fail 'old'; return }
   $raw = @($list | ForEach-Object { "$_" })
   try {
 ` + psAggregatePS + `  } catch { Fail 'list'; return }

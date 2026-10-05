@@ -76,7 +76,7 @@ type Tags struct {
 	ListAddr  uint64    // addresses written (0: not recorded, version 3)
 	LastWhen  time.Time // last update attempt
 	LastOK    bool
-	LastWhy   string // on failure: download, list, apply, lock, ports; on success: download, file, task
+	LastWhy   string // on failure: download, list, old, apply, lock, ports; on success: download, file, task
 	Countries []string
 	Per       map[string]uint64 // addresses of each country when written
 	Off       []OffRule

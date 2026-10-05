@@ -456,7 +456,12 @@ func ripeJSON(n, base int) string {
 		items = append(items, fmt.Sprintf(`"%d.%d.0.0/22"`, base+i/250, i%250))
 	}
 	items = append(items, `"0.0.0.0/0"`, `"2001:db8::/32"`, `"bad"`, `"10.0.0.0/8"`)
-	return `{"data":{"resources":{"ipv4":[` + strings.Join(items, ",") + `]}}}`
+	return ripeWrap(`"ipv4":[` + strings.Join(items, ",") + `]`)
+}
+
+// ripeWrap: a RIPEstat answer with recent data around the given resources.
+func ripeWrap(resources string) string {
+	return `{"data":{"query_time":"` + time.Now().UTC().AddDate(0, 0, -3).Format("2006-01-02T15:04:05") + `","resources":{` + resources + `}}}`
 }
 
 // lists: the default countries of the tests (Iran: 1966 ranges, Germany: 700)

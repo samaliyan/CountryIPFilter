@@ -20,10 +20,11 @@ Typical use: a server whose users are all in one or a few countries (a Revit Ser
 ## How it works
 
 1. The IPv4 ranges of each chosen country are downloaded from [RIPEstat](https://stat.ripe.net/docs/data_api#country-resource-list) (data from all five regional internet registries).
-2. The ranges are merged into as few networks as possible.
-3. Allow rules are written to Windows Firewall, 400 ranges per rule: one set for the TCP ports, one for the UDP ports, and one for each program.
-4. Rules that open the same ports to everyone are switched off, and the program remembers them.
-5. "Turn protection off" removes its rules and switches the old rules back on.
+2. A list whose data is older than 30 days (RIPEstat reports the date of its data) is not used; the current rules stay.
+3. The ranges are merged into as few networks as possible.
+4. Allow rules are written to Windows Firewall, 400 ranges per rule: one set for the TCP ports, one for the UDP ports, and one for each program.
+5. Rules that open the same ports to everyone are switched off, and the program remembers them.
+6. "Turn protection off" removes its rules and switches the old rules back on.
 
 ## Use
 
@@ -31,7 +32,7 @@ Typical use: a server whose users are all in one or a few countries (a Revit Ser
 2. Double-click it:
 
 ```
-CountryIPFilter-Setup-4.0.3.exe
+CountryIPFilter-Setup-4.0.4.exe
 ```
 
 3. Answer Yes to the Windows prompt.
@@ -121,7 +122,7 @@ MIT, see LICENSE.
 2. روی آن دوبار کلیک کنید:
 
 ```
-CountryIPFilter-Setup-4.0.3.exe
+CountryIPFilter-Setup-4.0.4.exe
 ```
 
 3. در پیام ویندوز، Yes را بزنید.

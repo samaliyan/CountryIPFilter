@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: ./build.sh 4.0.3
+# usage: ./build.sh 4.0.4
 # Builds dist/CountryIPFilter-Setup-<version>.exe: one file, the guides are
 # built in. Run from anywhere it installs itself to Program Files.
 set -e

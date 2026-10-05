@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Version 3 rules stay because moving them failed; the user turns
@@ -349,5 +350,28 @@ func TestGuidesBuiltIn(t *testing.T) {
 		if !strings.Contains(string(g[n]), "</html>") {
 			t.Errorf("%s not built in", n)
 		}
+	}
+}
+
+// A RIPEstat answer must carry a recent date.
+func TestRIPEListDate(t *testing.T) {
+	now := time.Date(2026, 10, 5, 8, 0, 0, 0, time.UTC)
+	timeNow = func() time.Time { return now }
+	defer func() { timeNow = time.Now }()
+	mk := func(qt string) []byte {
+		return []byte(`{"data":{"query_time":"` + qt + `","resources":{"ipv4":["2.144.0.0/14"]}}}`)
+	}
+	for _, ok := range []string{"2026-10-01T00:00:00", "2026-09-06T08:00:01", "2026-10-01T00:00:00Z", "2026-10-06T00:00:00"} {
+		if _, err := parseRIPE(mk(ok)); err != nil {
+			t.Errorf("%s: %v", ok, err)
+		}
+	}
+	for _, bad := range []string{"2026-08-01T00:00:00", "2026-10-09T00:00:00", "", "yesterday"} {
+		if _, err := parseRIPE(mk(bad)); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
+	}
+	if _, err := parseRIPE([]byte(`{"data":{"resources":{"ipv4":["2.144.0.0/14"]}}}`)); err == nil {
+		t.Error("no date accepted")
 	}
 }

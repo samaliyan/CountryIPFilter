@@ -407,6 +407,8 @@ func failWhy(code string) string {
 		return T("لیست از اینترنت دانلود نشد.")
 	case "list":
 		return T("لیست دانلودشده ناقص یا نادرست بود و استفاده نشد.")
+	case "old":
+		return T("لیست RIPEstat به‌روز نبود (بیشتر از 30 روز) و استفاده نشد؛ لیست قبلی سر جایش ماند.")
 	case "apply":
 		return T("نوشتن Rule ها انجام نشد.")
 	case "lock":
